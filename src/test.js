@@ -1,5 +1,7 @@
 const { csvToJson } = require("./csv-parser");
 
-const result = csvToJson("data/small-csv.csv", ",", true);
+//without header
+//csvToJson("data/small-csv.csv", ",", false, true).pipe(process.stdout);
 
-console.log(result);
+//with header
+csvToJson("data/big-csv.csv", ",", true, true).pipe(process.stdout);

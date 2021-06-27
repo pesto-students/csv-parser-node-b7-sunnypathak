@@ -1,20 +1,22 @@
 const fs = require("fs");
-const { delimiter } = require("path");
 const path = require("path");
 const { Transform } = require("stream");
+
+const getHeader = (chunk, delimiter) => {
+  return chunk.split(/\r?\n/g).map((row) => row.split(delimiter))[0];
+};
 
 const parseCsvToJson = (
   chunk,
   delimiter,
   withHeader,
-  modifyHeader,
   headerArray,
   chunkCount
 ) => {
   const rows = chunk.split(/\r?\n/g).map((row) => row.split(delimiter));
 
   if (!withHeader) {
-    return rows;
+    return JSON.stringify(rows);
   } else {
     let jsonRows = [];
 
@@ -27,14 +29,8 @@ const parseCsvToJson = (
       });
       jsonRows.push(jsonRowObj);
     }
-    return jsonRows;
+    return JSON.stringify(jsonRows, null, "\t");
   }
-};
-
-const getHeader = (chunk) => {
-  const rows = chunk.split(/\r?\n/g).map((row) => row.split(delimiter));
-
-  return rows[0];
 };
 
 const csvToJsonSync = (inputFilePath, delimiter, withHeader, modifyHeader) => {
@@ -46,14 +42,16 @@ const csvToJsonSync = (inputFilePath, delimiter, withHeader, modifyHeader) => {
 
   readableStream.on("data", (chunk) => {
     if (withHeader && chunkCount === 1) {
-      headerArray = getHeader(chunk.toString())[0].split(delimiter);
+      headerArray = getHeader(chunk.toString(), delimiter);
+      if (modifyHeader) {
+        headerArray = headerArray.map((headerStr) => headerStr.toUpperCase());
+      }
     }
 
     const result = parseCsvToJson(
       chunk.toString(),
       delimiter,
       withHeader,
-      modifyHeader,
       headerArray,
       chunkCount
     );
@@ -72,7 +70,5 @@ module.exports.csvToJson = (
   withHeader = false,
   modifyHeader = false
 ) => {
-  return JSON.stringify(
-    csvToJsonSync(inputFilePath, delimiter, withHeader, modifyHeader)
-  );
+  return csvToJsonSync(inputFilePath, delimiter, withHeader, modifyHeader);
 };
